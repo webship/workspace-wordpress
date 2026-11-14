@@ -1,0 +1,76 @@
+{
+  "name": "@webship.co/workspace-wordpress",
+  "version": "1.0.2",
+  "description": "WordPress for Webship Workspace: the builder (`cmd-wordpress-project.sh`) and the WP-CLI tool in every sites folder, the default accounts, the WordPress step pack wired into the testing setup, and two AI agents in the AI Agents folder. The reference platform plugin.",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webship/workspace-wordpress.git"
+  },
+  "files": [
+    "dist/src",
+    "agents",
+    "commands",
+    "docs",
+    "features",
+    "scripts",
+    "testing",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "workspacePlugin": {
+    "name": "wordpress",
+    "label": "WordPress",
+    "commands": {
+      "types": [
+        "sites"
+      ],
+      "workspaces": [
+        "dev",
+        "test",
+        "sandboxes",
+        "demos"
+      ],
+      "files": [
+        "commands/cmd-wordpress-project.sh",
+        "commands/cmd-tools-wordpress-cli.sh"
+      ]
+    },
+    "scripts": {
+      "functions": [
+        "scripts/functions/fun-wordpress.sh"
+      ],
+      "args": [
+        "scripts/args/arg-wordpress.sh",
+        "scripts/args/arg-wordpress-cli.sh"
+      ],
+      "machine": [
+        "testing/site.feature"
+      ]
+    },
+    "ai": {
+      "agents": [
+        "agents/wordpress-site-builder.md",
+        "agents/wordpress-tester.md"
+      ]
+    },
+    "features": [
+      "features/wordpress.feature"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@webship.co/workspace-plugin-api": "^1.0.2",
+    "typescript": "^5.9.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
