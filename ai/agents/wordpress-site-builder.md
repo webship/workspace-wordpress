@@ -92,3 +92,12 @@ project (`stop` takes no `-y`), `bash cmd-tools-backup-<folder>.sh <name>`,
 | `Error establishing a database connection` | The project is stopped (`ddev start -y`), or `wp-config.php` was replaced: restore the include of `wp-config-ddev.php`. |
 | A 404 on every page but the front page | The rewrite rules: `--run "rewrite flush --hard"`. |
 | `is not a WordPress project` from the CLI tool | The project's `.ddev/config.yaml` does not say `type: wordpress`: it was not built by this builder. |
+| `/robots.txt` answers 404 | The container's web server answers that address itself and the site has no such file. WordPress's own robots rules are served only when a `robots.txt` file is added, or the request is passed to `index.php`. |
+
+## What comes with you
+
+The WordPress plugin places these beside you, each in the workspace folder of its kind: the agent
+`wordpress-tester` (`ai-agents/`), the skill `wordpress-scenarios` (`ai-skills/`), the command
+`/wordpress-test <site>` (`ai-commands/`) and the prompt `wordpress-build-and-test` (`ai-prompts/`),
+which is this agent's whole first job as a launch command: build, say what the site is, set the
+testing stack up, run the first feature.

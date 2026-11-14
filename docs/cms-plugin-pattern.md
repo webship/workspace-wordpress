@@ -2,8 +2,9 @@
 
 `@webship.co/workspace-wordpress` is the pattern for the plugin of any other platform (Joomla, TYPO3,
 django CMS, Odoo, Ghost, Backdrop CMS, Craft CMS, PrestaShop, Magento, Gatsby, Astro). A platform
-plugin draws nothing on the dashboard: it places commands, functions and agents, and the core does
-the rest. Below, `<p>` is the platform's name.
+plugin draws nothing on the dashboard: it places commands, functions and AI items (agents, a skill,
+a command, prompts), and the core does the rest. How the items are laid out, declared, tested and
+proven is in [plugin-items-pattern.md](plugin-items-pattern.md). Below, `<p>` is the platform's name.
 
 ## Copy, then rename
 
@@ -28,7 +29,8 @@ the rest. Below, `<p>` is the platform's name.
    the args sourced from `${WORKSPACE_SCRIPTS}/plugins/<p>/args/`, and one function call as the last
    line. `--help` must do nothing but print.
 5. Keep the manifest's keys: `commands` (types `sites`), `scripts.functions`, `scripts.args`,
-   `scripts.machine` (the first feature), `ai.agents`, `features`.
+   `scripts.machine` (the first feature), `ai.agents`, `ai.skills`, `ai.commands`, `ai.prompts` (the
+   files under `ai/`), `needs` (a sites folder, and the AI folder of each kind), `features`.
 
 ## What differs per platform
 
@@ -42,13 +44,16 @@ the rest. Below, `<p>` is the platform's name.
 | Default accounts | One per role: `administrator`, `editor`, `author`, `contributor`, `subscriber`, at `@example.com` | The platform's roles; a platform with no accounts (a static site generator) ships no user functions |
 | Test pack | `@webship-js/wordpress-steps` `^2.2.0`, registry prefix `WP` | The platform's step pack and release line, in `<P>_STEPS_PACKAGE` and `<P>_STEPS_VERSION`; the registry and the first feature only if the pack logs in |
 | First feature | `testing/site.feature`: front page, login, each account in its role | A handful of scenarios from the pack's own steps, with no platform name in a step phrase |
-| Agents | `wordpress-site-builder`, `wordpress-tester` | `<p>-site-builder`, `<p>-tester`, with `model: fable`, the plugin's commands and the same rules: containers only, never the workspace account in a test, never an account created in a suite |
+| Agents | `ai/agents/wordpress-site-builder.md`, `wordpress-tester.md` | `<p>-site-builder`, `<p>-tester`, with `model: fable`, the plugin's commands and the same rules: containers only, never the workspace account in a test, never an account created in a suite |
+| Skill | `ai/skills/wordpress-scenarios/`: the pack's phrases by area, the traps, three example features | `<p>-scenarios`, from the platform's own step pack, every phrase run on a real site; a platform with no pack ships a skill for what its CLI tool does |
+| Command | `ai/commands/wordpress-test.md`: `/wordpress-test <site>` | `<p>-test`, around `cmd-tools-testing.sh` |
+| Prompts | `ai/prompts/wordpress-build-and-test.md`, `wordpress-scenarios-for-a-role.md` | `<p>-build-and-test` with the builder's real flags; a second one for the platform's own daily task |
 
 ## Before it is pushed
 
 - `npm run lint && npm test`, and `bash -n` on every script.
 - In a throwaway workspace: require, activate, install; the builder is in the Build list of `dev`;
-  the agents are in the AI Agents folder; build one real site; `cmd-tools-testing.sh <name>` then
+  every AI item is in the folder of its kind; build one real site; `cmd-tools-testing.sh <name>` then
   `--run` is green; uninstall leaves nothing.
 - The words: the workspace is container-based (DDEV by default). Addresses are `@example.com`, paths
   are `/home/YOUR_USER`, passwords that are a person's are `CHANGE_ME`.

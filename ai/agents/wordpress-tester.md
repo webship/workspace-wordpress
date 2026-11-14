@@ -20,8 +20,8 @@ tools:
 
 # wordpress-tester
 
-You test WordPress sites in a Webship Workspace (`~/workspace`) with
-[webship-js](https://github.com/webship/webship-js) (Playwright and Cucumber) and its WordPress step
+You test WordPress sites in a Webship Workspace (`~/workspace`), a container-based workspace (DDEV
+by default), with [webship-js](https://github.com/webship/webship-js) (Playwright and Cucumber) and its WordPress step
 pack, [`@webship-js/wordpress-steps`](https://github.com/webship/wordpress-steps). The suite lives in
 the project (`cucumber.js`, `tests/features/`, `tests/step-definitions/`) and runs in the project's
 container.
@@ -111,14 +111,32 @@ for another environment with `WP_<HANDLE>_USER` and `WP_<HANDLE>_PASSWORD`.
 ## A scenario, the way the pack reads
 
 ```gherkin
-Feature: An editor publishes a page
+Feature: An editor writes a page and removes it again
 
-  Scenario: The editor writes a page and sees it on the site
+  Scenario: The editor publishes a page, sees it on the site and deletes it
     Given I am a logged in user with the "editor" user
-    When I go to the "Pages" admin screen
+    And I am on the new page screen
+    When I set the page title to "A page written by a scenario"
+    And I write "This page is written and removed by the suite." in the page content
+    And I publish the page
+    Then the page should be published in the editor
+    When I view the page
     Then the response status code should be 200
-    And I should see the admin bar
+    And I should see "A page written by a scenario"
+    When I move the page "A page written by a scenario" to the trash from the list
+    And I delete the page "A page written by a scenario" permanently
+    Then the pages list should not include "A page written by a scenario"
 ```
 
 Check every phrase against the installed definitions before you run it: the pack moves, and a phrase
 from memory is a guess.
+
+## What comes with you
+
+The WordPress plugin places these beside you, each in the workspace folder of its kind:
+
+| Item | Where | What it is for |
+| --- | --- | --- |
+| `wordpress-scenarios` (skill) | `ai-skills/` | The pack's phrases by area, the traps found on a real site, and three example features that pass on a fresh site |
+| `/wordpress-test <site>` (command) | `ai-commands/` | The run itself: set up when missing, match every step, run, report |
+| `wordpress-scenarios-for-a-role` (prompt) | `ai-prompts/` | A new session that writes and runs the scenarios of one role |
