@@ -3,7 +3,8 @@
 WordPress for the [Webship Workspace](https://github.com/webship/workspace) dashboard: a builder
 that makes a real WordPress site in a container, a WP-CLI tool for the sites it built, the default
 accounts, the [WordPress step pack](https://github.com/webship/wordpress-steps) wired into the
-workspace's testing setup, and two AI agents that know all of it.
+workspace's testing setup, and its AI items — two agents, a skill, a command and two prompts —
+each listed in the workspace folder of its kind.
 
 The workspace is container-based (DDEV by default): a WordPress project is a row like any other, so
 the row menus the core draws (start, stop, launch, backup, clone, remove, tests) work on it unchanged.
@@ -17,17 +18,26 @@ This is the reference platform plugin: the plugins for the other platforms are m
 cd ~/workspace
 bash core/scripts/plugins.sh --require github:webship/workspace-wordpress   # npm install into the dashboard
 bash core/scripts/plugins.sh --activate wordpress                            # plugins.wordpress in settings.yml
-bash core/scripts/plugins.sh --install wordpress                             # commands, functions, args, agents
+bash core/scripts/plugins.sh --install wordpress                             # commands, functions, args, AI items
 bash core/scripts/plugins.sh --configure wordpress                           # nothing to configure: it has no settings file
 ```
 
 The same four steps are buttons on the dashboard's **Settings → Plugins** page. `--install` is
-idempotent. `--uninstall` removes what it placed; an agent you edited stays, and a folder's own
+idempotent. `--uninstall` removes what it placed; an AI item you edited stays, and a folder's own
 example builder of the same name comes back.
 
-The commands land in the sites folders that are in the workspace (`dev`, `test`, `sandboxes`,
-`demos`); the agents land in the AI Agents folder (`ai-agents/`) when the workspace has one, and are
-installed into `~/.claude/agents` from there like any other agent.
+Everything the plugin carries lands in the folder it belongs to, when that folder is an active
+workspace folder:
+
+| What | Lands in |
+| --- | --- |
+| `cmd-wordpress-project.sh`, `cmd-tools-wordpress-cli.sh` | every active sites folder: `dev/`, `test/`, `sandboxes/`, `demos/` |
+| The agents `wordpress-site-builder`, `wordpress-tester` | `ai-agents/` |
+| The skill `wordpress-scenarios` | `ai-skills/` |
+| The command `/wordpress-test` | `ai-commands/` |
+| The prompts `wordpress-build-and-test`, `wordpress-scenarios-for-a-role` | `ai-prompts/` |
+
+There they are listed like any other item of the folder, and installed into Claude Code from there.
 
 The agents, the builder's flags in the Build form, the Users menu and the step pack in the testing
 setup need a Webship Workspace after 1.0.6; an older one still places the commands, and they build
@@ -38,18 +48,18 @@ and manage sites from the command line.
 A workspace starts empty, so the manifest says what else this plugin needs (`needs`):
 
 - one sites folder, for the builder and the tool: `dev`, `test`, `sandboxes`, `demos` (`dev` is the one added when none is there). The folder also carries `cmd-tools-testing.sh` and the Users tools this plugin's hooks answer to.
-- `ai-agents`, the AI Agents folder its two agents are placed in.
+- `ai-agents`, `ai-skills`, `ai-commands` and `ai-prompts`: the AI folders its agents, its skill, its command and its prompts are placed in.
 
 `--require` says so, `--activate` and `--install` stop until the workspace has them, and `--with-needs` adds what is missing first:
 
 ```bash
-bash core/scripts/plugins.sh --activate wordpress --with-needs   # dev and ai-agents are required, activated and installed first
+bash core/scripts/plugins.sh --activate wordpress --with-needs   # dev and the four AI folders are required, activated and installed first
 bash core/scripts/plugins.sh --install wordpress
 ```
 
 Everything the builder runs for a site runs in the site's own container, through the container tool the workspace already needs; the plugin asks for no command of its own on the machine.
 
-A workspace that knows none of this (Webship Workspace 1.0.8 and older) ignores the keys: add a sites folder and the AI Agents folder yourself, then `--install wordpress` again.
+A workspace that knows none of this (Webship Workspace 1.0.8 and older) ignores the keys: add a sites folder and the AI folders yourself, then `--install wordpress` again. A kind whose folder is not there is skipped, and the install says so.
 
 ## What the package holds
 
@@ -60,11 +70,15 @@ A workspace that knows none of this (Webship Workspace 1.0.8 and older) ignores 
 | `scripts/functions/fun-wordpress.sh` | The bash functions behind both, sourced by bootstrap once installed; the names the core's tools look for (`set_wordpress_users`, `add_wordpress_users`, `cancel_wordpress_users`, `testing_configure_wordpress`) |
 | `scripts/args/arg-wordpress.sh`, `arg-wordpress-cli.sh` | Their argparse; the Build form draws the builder's flags from the first |
 | `testing/site.feature` | The first feature a WordPress project gets when testing is set up |
-| `agents/wordpress-site-builder.md` | The agent that builds and maintains WordPress sites with these commands |
-| `agents/wordpress-tester.md` | The agent that writes and runs scenarios with the WordPress step pack |
+| `ai/agents/wordpress-site-builder.md` | The agent that builds and maintains WordPress sites with these commands |
+| `ai/agents/wordpress-tester.md` | The agent that writes and runs scenarios with the WordPress step pack |
+| `ai/skills/wordpress-scenarios/` | The skill: the step pack's phrases by area, the traps found on a real site, three example features |
+| `ai/commands/wordpress-test.md` | The slash command `/wordpress-test <site>`: set up, match every step, run, report |
+| `ai/prompts/wordpress-build-and-test.md`, `wordpress-scenarios-for-a-role.md` | Two prompts: whole launch commands for a new session |
 | `src/index.ts` | `register(api)`: what the assistant is told about WordPress here |
 | `features/wordpress.feature` | Scenarios for the dashboard's own browser suite |
 | `docs/cms-plugin-pattern.md` | How to make the plugin for another platform from this one |
+| `docs/plugin-items-pattern.md` | How any plugin carries its own commands and AI items, and how to prove it |
 
 The `workspacePlugin` block in `package.json` is the manifest the installer reads.
 
@@ -135,25 +149,42 @@ webship-js's own, writes the users registry (the handles above, overridable with
 project has none, and makes sure the default accounts are on the site. Run it again and it adds what
 is missing and keeps what you changed.
 
-## The agents
+## The AI items
 
-| Agent | Use it to |
-| --- | --- |
-| `wordpress-site-builder` | Build, update, maintain or remove a WordPress site with the commands above, in containers only |
-| `wordpress-tester` | Set the testing stack up, look at the site in the Playwright MCP browser first, write scenarios from the pack's steps and run them; it never creates an account in a suite and never writes a platform name into a step phrase |
+`ai/` in the package holds one folder per kind, the manifest's `ai` block names each item, and
+`--install` places it in the workspace folder of that kind.
 
-After `--install` they are in the AI Agents folder of the dashboard; **Install** there puts one into
-`~/.claude/agents`, or from the command line:
+| Kind | Item | Use it to |
+| --- | --- | --- |
+| Agent | `wordpress-site-builder` | Build, update, maintain or remove a WordPress site with the commands above, in containers only |
+| Agent | `wordpress-tester` | Set the testing stack up, look at the site in the Playwright MCP browser first, write scenarios from the pack's steps and run them; it never creates an account in a suite and never writes a platform name into a step phrase |
+| Skill | `wordpress-scenarios` | Write a scenario from phrases that exist: the pack's steps by area, the handles of the users registry, the traps found on a real site, and three features that pass on a fresh site |
+| Command | `/wordpress-test <site> [feature or @tag]` | Run the suite of a site from inside a session: set up when missing, match every step, run, report what failed and why |
+| Prompt | `wordpress-build-and-test` | Start a session that builds a site, says what it is, sets the testing stack up and runs the first feature |
+| Prompt | `wordpress-scenarios-for-a-role` | Start a session that writes and runs the scenarios of one role |
+
+After `--install` each is in its folder on the dashboard. **Install** there puts an agent, a skill
+or a command into Claude Code (`~/.claude/agents`, `~/.claude/skills`, `~/.claude/commands`), or
+from the command line:
 
 ```bash
-cd ~/workspace/ai-agents
-bash cmd-tools-ai-items.sh wordpress-tester --install
+cd ~/workspace/ai-agents   && bash cmd-tools-ai-items.sh wordpress-tester --install
+cd ~/workspace/ai-skills   && bash cmd-tools-ai-items.sh wordpress-scenarios --install
+cd ~/workspace/ai-commands && bash cmd-tools-ai-items.sh wordpress-test --install
 ```
+
+A prompt is not installed: it is the whole `claude …` launch command of a new session, and the
+dashboard's **New screen** form lists it as a template. By hand, fill the placeholders in and run
+the command of the file from the folder it names.
+
+Every step phrase the items show is checked against the definitions of the step pack and of
+webship-js (`tests/fixtures/step-definitions.txt`), and every command and flag against the
+plugin's own.
 
 ## Develop it
 
 ```bash
 npm install     # builds dist/ (TypeScript)
 npm run lint
-npm test        # the manifest, the commands, the agents, the functions against a scaffolded project
+npm test        # the manifest, the commands, the AI items, the functions against a scaffolded project
 ```
