@@ -7,6 +7,10 @@ argument-hint: '<site> [tests/features/<name>.feature | @tag]'
 
 Test the WordPress site named in: `$ARGUMENTS`
 
+`$ARGUMENTS` stands for what was typed after the command. An AI CLI that does not fill it in
+reads the same from the request: the name of the site, then, if anything, one feature path or one
+tag.
+
 The first word is the site (its folder name in a sites folder of the workspace). What follows, if
 anything, narrows the run: a path that starts with `tests/features/` is one feature (or one
 folder of features), a word that starts with `@` is a tag expression. With nothing after the site,

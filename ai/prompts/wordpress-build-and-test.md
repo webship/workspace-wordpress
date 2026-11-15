@@ -1,5 +1,7 @@
 Build a WordPress site in a sites folder and prove it with its first webship-js feature.
 
+The launch command below is for Claude Code, the default; the text between the triple quotes can be given to another AI CLI as it is.
+
 ```
 claude --permission-mode bypassPermissions """
 Build a WordPress site named <name> in this sites folder and test it with webship-js

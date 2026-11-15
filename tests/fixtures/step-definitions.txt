@@ -1,5 +1,4 @@
-# The step definitions a WordPress project of the workspace loads: @webship-js/wordpress-steps 2.2.0 and webship-js 2.0.10.
-# One regular expression per line, read from the installed packages of a real project. How to refresh it: docs/plugin-items-pattern.md.
+# @webship-js/wordpress-steps 2.2.0 and webship-js 2.0.10
 ^a (GET|POST|PUT|PATCH|DELETE) request to "([^"]*)" should have been made$
 ^all cookies are cleared$
 ^a request to "([^"]*)" should have been made$

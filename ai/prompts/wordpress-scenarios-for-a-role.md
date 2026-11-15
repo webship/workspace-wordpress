@@ -1,11 +1,13 @@
 Write and run webship-js scenarios for what one role does on a WordPress site.
 
+The launch command below is for Claude Code, the default; the text between the triple quotes can be given to another AI CLI as it is.
+
 ```
 claude --permission-mode bypassPermissions """
 Write scenarios for what the <administrator|editor|author|contributor|subscriber> does on this site, and run them
 # ~/workspace/<folder>/<site> · https://<site>.ddev.site · container-based (DDEV by default)
-# use the wordpress-scenarios skill for the phrases, and the wordpress-tester agent if you hand the work over
-# use playwright mcp, in a tab of your own, to do each thing by hand once before writing its scenario
+# the phrases are in the wordpress-scenarios skill; the wordpress-tester agent is the one to hand this work over to
+# look at the site first: in the Playwright MCP browser, in a tab of your own, do each thing by hand once before writing its scenario
 
 What to cover:
 <the screens and tasks of this role that matter here, one per line>
