@@ -77,6 +77,11 @@ every command, flag, path and step phrase in it exists:
 - commands and flags: the plugin's own (`scripts/args/*.sh`) and the workspace's (`cmd-tools-testing.sh`
   and its flags, `cmd-tools-remove.sh`, `cmd-tools-clone.sh --to`, `cmd-tools-ai-items.sh --install`);
 - step phrases: the plugin's step pack and webship-js, as installed in a real project;
+- the body is for any AI CLI, Claude Code being the default shape: plain Markdown ("run this
+  command", "read this file", "the AI assistant") that names no tool or feature of one CLI; the
+  frontmatter and a prompt's `claude …` launch line stay, with one line saying that the text between
+  the quotes can be given to another AI CLI as it is; a command keeps `$ARGUMENTS` and says in
+  words what the arguments are;
 - the workspace is container-based (DDEV by default); no platform name in a step phrase; no
   account created by a scenario; no password, no personal path, addresses at `example.com`.
 
@@ -103,7 +108,7 @@ line changes (`<pack>` is the plugin's step pack):
 cd ~/workspace/<folder>/<site>
 { echo "# <pack> <version> and webship-js <version>" ;
   grep -hE "^(Given|When|Then)\(/" node_modules/<pack>/tests/step-definitions/*.steps.js node_modules/webship-js/tests/step-definitions/*.steps.js \
-    | sed -nE 's/^(Given|When|Then)\(\/(.*)\/, (async )?function.*/\2/p' | sort -u ; } > step-definitions.txt
+    | sed -nE 's/^(Given|When|Then)\(\/(.*)\/, (\{[^}]*\}, )?(async )?function.*/\2/p' | sort -u ; } > step-definitions.txt
 ```
 
 `tests/needs.test.ts` holds the exact `needs` list, and `tests/plugin.test.ts` that every file the

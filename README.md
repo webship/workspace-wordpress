@@ -177,9 +177,14 @@ A prompt is not installed: it is the whole `claude …` launch command of a new 
 dashboard's **New screen** form lists it as a template. By hand, fill the placeholders in and run
 the command of the file from the folder it names.
 
+The items are written for any AI CLI, with Claude Code as the default shape: the frontmatter and
+the file layout are Claude Code's, the body of each item is plain Markdown that names no tool or
+feature of one CLI, a command says in words what its arguments are, and the text between the
+triple quotes of a prompt can be given to another AI CLI as it is.
+
 Every step phrase the items show is checked against the definitions of the step pack and of
 webship-js (`tests/fixtures/step-definitions.txt`), and every command and flag against the
-plugin's own.
+plugin's own. The shape is written down in [`docs/plugin-items-pattern.md`](docs/plugin-items-pattern.md).
 
 ## Develop it
 

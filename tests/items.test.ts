@@ -177,3 +177,28 @@ test('the items say container-based, name the plugin they come with, and carry n
   const readme = read('README.md');
   for (const name of [...AGENTS, ...SKILLS, ...AI_COMMANDS, ...PROMPTS]) assert.ok(readme.includes(name), `the README lists ${name}`);
 });
+
+// The items are for any AI CLI, with Claude Code as the default shape: the frontmatter and the launch line of a
+// prompt are Claude Code's, the body is plain Markdown that names no tool or feature of one CLI.
+test('the body of every item can be followed by any AI CLI: it names no tool or feature of one', () => {
+  const NOTE = 'the text between the triple quotes can be given to another AI CLI as it is';
+  for (const f of ITEM_FILES.filter((x) => x.endsWith('.md'))) {
+    const src = read(f);
+    const head = frontmatter(src);
+    // What is Claude Code's by design: the frontmatter, the launch line of a prompt, and the line that says so.
+    const body = (head ? src.slice(head.length) : src).split('\n')
+      .filter((l) => !/^\s*claude\s+--permission-mode bypassPermissions\s*"""\s*$/.test(l) && !l.includes(NOTE)).join('\n');
+    assert.doesNotMatch(body, /\b(Bash|Read|Write|Edit|Grep|Glob|Task|Agent|Skill|WebFetch|TodoWrite) tool\b/, `${f} names a tool of one AI CLI`);
+    assert.doesNotMatch(body, /sub-?agent|bypassPermissions|--permission-mode|allowedTools|mcp__/i, `${f} names a feature of one AI CLI`);
+    assert.doesNotMatch(body, /\bClaude\b|\bclaude\b|~\/\.claude/, `${f}: the body says "the AI assistant", not the name of one`);
+  }
+  for (const f of manifest.ai.prompts) assert.ok(read(f).includes(NOTE), `${f} says its text can be given to another AI CLI`);
+  for (const f of manifest.ai.commands) assert.match(read(f), /`\$ARGUMENTS` stands for what was typed after the command/, `${f} says in words what its arguments are`);
+});
+
+// The fixture is the pack at the version the builder pins, so a phrase checked here is one a project really gets.
+test('the fixture is the pack at the version the builder pins', () => {
+  const head = read('tests/fixtures/step-definitions.txt').split('\n')[0];
+  const pin = read('scripts/functions/fun-wordpress.sh').match(/_STEPS_VERSION='\^([0-9.]+)'/)![1];
+  assert.ok(head.includes(`@webship-js/wordpress-steps ${pin} `), `the fixture is read from @webship-js/wordpress-steps ${pin}: ${head}`);
+});
