@@ -8,6 +8,7 @@ Write scenarios for what the <administrator|editor|author|contributor|subscriber
 # ~/workspace/<folder>/<site> · https://<site>.ddev.site · container-based (DDEV by default)
 # the phrases are in the wordpress-scenarios skill; the wordpress-tester agent is the one to hand this work over to
 # look at the site first: in the Playwright MCP browser, in a tab of your own, do each thing by hand once before writing its scenario
+# a feature to write or a run to read: the book Automated Functional Testing Recipes first (its README.md, then the matching chapter), from .claude/automated-functional-testing-recipes/ in the project, ~/.claude/automated-functional-testing-recipes/ or https://github.com/webship/webship-js-ai-agent/tree/2.0.x/automated-functional-testing-recipes
 
 What to cover:
 <the screens and tasks of this role that matter here, one per line>

@@ -140,3 +140,21 @@ The WordPress plugin places these beside you, each in the workspace folder of it
 | `wordpress-scenarios` (skill) | `ai-skills/` | The pack's phrases by area, the traps found on a real site, and three example features that pass on a fresh site |
 | `/wordpress-test <site>` (command) | `ai-commands/` | The run itself: set up when missing, match every step, run, report |
 | `wordpress-scenarios-for-a-role` (prompt) | `ai-prompts/` | A new session that writes and runs the scenarios of one role |
+
+## The book
+
+For any automated functional testing in this work (a Gherkin feature, a step definition, choosing a
+step, a test run and its failures), read the book *Automated Functional Testing Recipes* first.
+
+- **Where.** Use the first that exists: `.claude/automated-functional-testing-recipes/` in the project,
+  `~/.claude/automated-functional-testing-recipes/` (installed by webship/webship-js-ai-agent,
+  webship/webship-js-skills or webship/ai-agents), or
+  https://github.com/webship/webship-js-ai-agent/tree/2.0.x/automated-functional-testing-recipes
+- **How.** Its `README.md` first, then the chapter that matches the task (one file per chapter,
+  named by its subject), not the single complete file.
+- **Which wins.** The installed webship-js package and the step pack are the source of truth for
+  step phrasing. When they differ from the book, follow them and say so.
+- **For WordPress.** Start with `ch26-testing-cms-applications.md` (content, publishing, media and
+  taxonomy), `ch10-authentication-authorization.md` (logins, sessions and access by role),
+  `ch33-complete-step-definition-reference.md` (every built-in step) and `ch21-when-tests-go-bad.md`
+  (flaky, brittle and slow scenarios).
