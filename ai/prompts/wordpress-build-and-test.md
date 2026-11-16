@@ -8,6 +8,7 @@ Build a WordPress site named <name> in this sites folder and test it with webshi
 # ~/workspace/<dev|test|sandboxes|demos> · https://<name>.ddev.site · container-based (DDEV by default)
 # the builder deletes a project of the same name first: stop if <name> is a site somebody still needs
 # nothing on the host: no wp, composer, npm or mysql outside the site's container
+# a feature to write or a run to read: the book Automated Functional Testing Recipes first (its README.md, then the matching chapter), from .claude/automated-functional-testing-recipes/ in the project, ~/.claude/automated-functional-testing-recipes/ or https://github.com/webship/webship-js-ai-agent/tree/2.0.x/automated-functional-testing-recipes
 
 1. bash cmd-wordpress-project.sh <name> --install --add-users
    (add --version <x> for a release other than the latest)
