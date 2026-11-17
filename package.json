@@ -1,6 +1,6 @@
 {
   "name": "@webship.co/workspace-wordpress",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "WordPress for Webship Workspace: the builder (`cmd-wordpress-project.sh`) and the WP-CLI tool in every sites folder, the default accounts, the WordPress step pack wired into the testing setup, and its AI items in their folders: two agents, a skill, a command and two prompts. The reference platform plugin.",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
