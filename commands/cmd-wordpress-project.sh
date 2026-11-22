@@ -4,9 +4,11 @@
 
 # Installed by the WordPress plugin (plugins.sh --install wordpress); __WORKSPACE__ is the workspace it was installed into.
 #
-# Build a WordPress site in a container: the latest release, or the one --version names, at
-# https://<name>.ddev.site. With --install the site is installed with the workspace account as its
-# administrator; with --add-users it also gets the default accounts, one per role.
+# Build a WordPress site in a container: the latest release, or the one --version names. On DDEV
+# (the default) it is at https://<name>.ddev.site; with --runtime docker, podman or kubernetes it is
+# built on that runtime, at the address the build prints. With --install the site is installed with
+# the workspace account as its administrator; with --add-users it also gets the default accounts,
+# one per role.
 
 # Bootstrap.
 # Find the workspace tooling from this script, so a fresh clone needs no setup.

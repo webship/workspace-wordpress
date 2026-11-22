@@ -5,10 +5,16 @@
 #
 # Placed by `plugins.sh --install wordpress` in core/scripts/plugins/wordpress/functions/, where
 # bootstrap sources it after the core's own functions. Everything runs in the project's container
-# (DDEV by default: `ddev wp …`), never on the host. DDEV writes wp-config-ddev.php for the
-# database, so nothing here writes database settings.
+# (DDEV by default: `ddev wp …`), never on the host.
 #
-# Four names are the ones the core's tools look for, under the DDEV project type `wordpress`:
+# The runtimes: a site is built on DDEV, or with --runtime on Docker Compose, Podman or Kubernetes.
+# The commands are the same on each: `ddev <verb>` is DDEV itself on a DDEV project, and on another
+# runtime the core's layer (fun-runtime.sh) gives the verb its meaning there. What differs is in
+# three places, each behind wordpress_runtime: the address (wordpress_url), wp-config.php (DDEV
+# writes wp-config-ddev.php for the database; on another runtime wordpress_runtime_config writes the
+# container's own values), and how a project is known (wordpress_is_project).
+#
+# Four names are the ones the core's tools look for, under the project type `wordpress`:
 #   set_wordpress_users        the default accounts          (cmd-tools-add-users.sh <project> wordpress)
 #   add_wordpress_users        create them with WP-CLI       (the same tool, and --add-users of the builder)
 #   cancel_wordpress_users     delete them                   (cmd-tools-cancel-users.sh <project> wordpress)
@@ -31,9 +37,23 @@ function set_wordpress_users() {
   done
 }
 
-# Is this folder a WordPress project? Its DDEV project type says so.
+# The runtime of the project in this folder, or of a new build (--runtime, else the workspace's
+# setting, else DDEV). A core without the runtime layer has DDEV only.
+function wordpress_runtime() {
+  if declare -f runtime_of > /dev/null ; then runtime_of ; else echo 'ddev' ; fi
+}
+
+# The address of the site in this folder: https://<name>.ddev.site on DDEV, http://127.0.0.1:<port>
+# on Docker Compose and Podman, the node's address and a port on Kubernetes. Asked after `ddev config`.
+function wordpress_url() {
+  if declare -f rt_url > /dev/null ; then rt_url ; else echo "https://${PROJECT_NAME}.ddev.site" ; fi
+}
+
+# Is this folder a WordPress project? Its project type says so: `type: wordpress` in
+# .ddev/config.yaml, or, on another runtime, in the x-webship block of compose.yaml.
 function wordpress_is_project() {
   local project_path="$1";
+  if declare -f rt_is_platform > /dev/null ; then rt_is_platform "${project_path}" wordpress ; return $? ; fi
   grep -qE '^type:[[:space:]]*"?wordpress"?[[:space:]]*$' "${project_path}/.ddev/config.yaml" 2>/dev/null ;
 }
 
@@ -45,16 +65,54 @@ function wordpress_enter_project() {
     return 1 ;
   fi
   if ! wordpress_is_project "${project_path}" ; then
-    echo "${doc_name}/${PROJECT_NAME} is not a WordPress project (its .ddev/config.yaml does not say type: wordpress)." ;
+    echo "${doc_name}/${PROJECT_NAME} is not a WordPress project (its .ddev/config.yaml or compose.yaml does not say type: wordpress)." ;
     return 1 ;
   fi
   cd "${project_path}" || return 1 ;
 }
 
+# What DDEV does for a WordPress project and another runtime does not, done once the code is there:
+# wp-config.php with the database of the project's own stack (db/db/db on the host db, nothing
+# personal), and the .htaccess WordPress needs on Apache, the web server of that stack. A file that
+# is already there is left as it is. Never called on DDEV.
+function wordpress_runtime_config() {
+  if [ ! -f wp-config.php ] ; then
+    ddev wp config create --dbname=db --dbuser=db --dbpass=db --dbhost=db --skip-check --extra-php <<'PHP' || return 1
+// The Webship Workspace's container runtime (Docker Compose, Podman, Kubernetes): the site answers
+// at the address it is asked on (a port of this machine, a node of the cluster, a tunnel). The
+// address kept in the database at the install is the one the command line uses.
+if ( ! empty( $_SERVER['HTTP_HOST'] ) ) {
+	define( 'WP_HOME', 'http://' . $_SERVER['HTTP_HOST'] );
+	define( 'WP_SITEURL', WP_HOME );
+}
+PHP
+  fi
+  if [ ! -f .htaccess ] ; then
+    cat > .htaccess <<'HTACCESS'
+# BEGIN WordPress
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+</IfModule>
+# END WordPress
+HTACCESS
+  fi
+}
+
 # Build a WordPress site from nothing: the container, the code, and with --install the site itself.
 function wordpress_build() {
   trim_project_name ;
-  local base_url="https://${PROJECT_NAME}.ddev.site" ;
+  local base_url runtime ;
+  runtime="$(wordpress_runtime)" ;
+  if [ "${RUNTIME:-_none_}" != '_none_' ] && [ "${RUNTIME}" != "${runtime}" ] ; then
+    echo "--runtime ${RUNTIME} needs a Webship Workspace with the container runtimes (webship/workspace#694): update the workspace, or build on DDEV." ;
+    exit 1 ;
+  fi
   local version="${VERSION:-${site_version:-latest}}" ;
   local php_version="${PHP_VERSION:-${site_php_version:-}}" ;
 
@@ -68,8 +126,13 @@ function wordpress_build() {
   ddev config --project-type=wordpress --docroot="${distribution_webroot}" --project-name=${PROJECT_NAME} \
     --nodejs-version=$(ddev_nodejs_version) ${php_version:+--php-version=${php_version}} --auto || exit 1 ;
   ddev_up start -y || exit 1 ;
+  # The address is the runtime's to say, once the project is configured: never a written ddev.site.
+  base_url="$(wordpress_url)" ;
 
   ddev wp core download --version="${version}" --locale="${LOCALE:-en_US}" || { echo "wp core download failed." ; exit 1 ; } ;
+  if [ "${runtime}" != 'ddev' ] ; then
+    wordpress_runtime_config || { echo "wp-config.php could not be written." ; exit 1 ; } ;
+  fi
 
   if [ "${INSTALL}" == 'yes' ] ; then
     ddev wp core install --url="${base_url}" --title="${doc_name} ${PROJECT_NAME}" \
@@ -77,6 +140,13 @@ function wordpress_build() {
       --skip-email || { echo "wp core install failed." ; exit 1 ; } ;
     # An install picks a pretty permalink structure but does not always write every rewrite rule
     # (taxonomy archives, for one). A flush writes them again from the structure the install chose.
+    # An install tries the pretty permalinks by calling the site at its own address, and leaves the
+    # plain ones when that fails. On another runtime than DDEV, where an older stack could not reach
+    # itself, the structure an install chooses is set here when it is missing: the addresses of a
+    # site are the same on every runtime.
+    if [ "${runtime}" != 'ddev' ] && [ -z "$(ddev wp option get permalink_structure 2>/dev/null)" ] ; then
+      ddev wp rewrite structure '/%year%/%monthnum%/%day%/%postname%/' ;
+    fi
     ddev wp rewrite flush ;
 
     if [ "${ADD_USERS}" == 'yes' ] ; then

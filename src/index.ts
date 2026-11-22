@@ -14,7 +14,7 @@
 
 import type { PluginApi } from '@webship.co/workspace-plugin-api';
 
-/** The plugin's name, which is also the DDEV project type its functions are named after. */
+/** The plugin's name, which is also the project type (DDEV's, and the one kept in compose.yaml on another runtime) its functions are named after. */
 export const PLATFORM = 'wordpress';
 
 /** The commands the installer places in every sites folder. */
@@ -37,14 +37,16 @@ export function assistantContext(): string {
   return [
     'WordPress (a plugin, @webship.co/workspace-wordpress): a WordPress site is built with',
     '`bash cmd-wordpress-project.sh <name> --install --add-users` from a sites folder (dev, test, sandboxes, demos),',
-    'in a container like every other project, at https://<name>.ddev.site.',
+    'in a container like every other project: on DDEV by default, at https://<name>.ddev.site, or with `--runtime docker` or',
+    '`--runtime kubernetes` on Docker Compose or a Kubernetes cluster, at the address the build prints.',
     '`bash cmd-tools-wordpress-cli.sh <name>` says what the site is; `--run "<wp-cli command>"` runs WP-CLI in it,',
     '`--update` updates the core, the plugins and the themes, `--add-users` adds the default accounts (one per role).',
     '`bash cmd-tools-testing.sh <name>` sets up webship-js with the WordPress step pack; `--run` runs the suite.',
     `For WordPress work, hand over to the agents ${AGENTS.map((a) => `\`${a}\``).join(' and ')}.`,
     `The plugin also places the skill ${SKILLS.map((a) => `\`${a}\``).join(', ')} (the step pack's phrases, by area) in ai-skills/,`,
     `the command ${AI_COMMANDS.map((a) => `\`/${a} <site>\``).join(', ')} in ai-commands/ and the prompts ${PROMPTS.map((a) => `\`${a}\``).join(' and ')} in ai-prompts/.`,
-    'Never run wp, composer, npm or mysql on the host for a project; never write database settings into wp-config.php.',
+    'The same commands work on every runtime. Never run wp, composer, npm or mysql on the host for a project; never write',
+    'database settings into wp-config.php on DDEV (on another runtime the builder writes the ones of the project\'s own stack).',
   ].join(' ');
 }
 

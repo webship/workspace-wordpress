@@ -8,6 +8,7 @@ each listed in the workspace folder of its kind.
 
 The workspace is container-based (DDEV by default): a WordPress project is a row like any other, so
 the row menus the core draws (start, stop, launch, backup, clone, remove, tests) work on it unchanged.
+A site is also built on Docker Compose or on a Kubernetes cluster: see [Runtimes](#runtimes).
 
 This is the reference platform plugin: the plugins for the other platforms are made from it, see
 [docs/cms-plugin-pattern.md](docs/cms-plugin-pattern.md).
@@ -100,12 +101,65 @@ bash cmd-wordpress-project.sh mysite --install --add-users
 | `--add-users` | With `--install`: add the default accounts, one per role |
 | `--locale <code>` | The language WordPress is downloaded in (`en_US`) |
 | `--php-version <x>` | The PHP of the project container |
+| `--runtime <name>` | The container runtime to build on: `ddev` (the default), `docker`, `kubernetes` or `podman`. See [Runtimes](#runtimes) |
 | `--launch` | Open the site when it is ready |
 
-The site answers at `https://mysite.ddev.site`, the administration at `/wp-admin`. The build runs
-`ddev config --project-type=wordpress` with the Node.js of the workspace (24), downloads WordPress
-with WP-CLI in the container, and leaves the database settings to the container tool
+On DDEV the site answers at `https://mysite.ddev.site`, the administration at `/wp-admin`. The build
+runs `ddev config --project-type=wordpress` with the Node.js of the workspace (24), downloads
+WordPress with WP-CLI in the container, and leaves the database settings to the container tool
 (`wp-config-ddev.php`): it writes none. A project of the same name is deleted first.
+
+### Runtimes
+
+```bash
+bash cmd-wordpress-project.sh mysite --install --add-users                        # DDEV, the default
+bash cmd-wordpress-project.sh mysite --install --add-users --runtime docker       # Docker Compose
+bash cmd-wordpress-project.sh mysite --install --add-users --runtime kubernetes   # a Kubernetes cluster
+```
+
+Without `--runtime` a build takes `container.runtime` of the workspace's `settings.yml`, then DDEV.
+It needs a Webship Workspace with the container runtimes
+([webship/workspace#694](https://github.com/webship/workspace/issues/694)); on an older one the
+builder refuses `--runtime` and builds on DDEV only.
+
+| | DDEV | Docker Compose | Kubernetes | Podman |
+| --- | --- | --- | --- | --- |
+| Build and install, with the default accounts | Yes | Yes | Yes | The same code as Docker Compose, not yet run |
+| The front page and the administration | Yes | Yes | Yes | Not yet run |
+| `cmd-tools-wordpress-cli.sh`: status, `--run`, the accounts | Yes | Yes | Yes | Not yet run |
+| Test users, added and cancelled | Yes | Yes | Yes | Not yet run |
+| The testing setup and the suite (`cmd-tools-testing.sh`, `--run`) | Yes | Yes | Yes | Not yet run |
+| Mail caught by Mailpit | Yes | Yes | Yes | Not yet run |
+| Export and import the database | Yes | Yes | Yes | Not yet run |
+| The row in the dashboard, and remove | Yes | Yes | Yes | Not yet run |
+
+"Yes" means it was run on a real site of that runtime.
+
+| Runtime | The site's address | What the project carries |
+| --- | --- | --- |
+| DDEV | `https://mysite.ddev.site` | `.ddev/config.yaml`; DDEV writes `wp-config.php` and `wp-config-ddev.php` |
+| Docker Compose | `http://127.0.0.1:<port>`, printed by the build | `compose.yaml`, `.webship/runtime/Dockerfile` |
+| Kubernetes | `http://<node address>:<port>`, printed by the build | The same, and `k8s/` (the namespace `ws-mysite`) |
+
+What differs on Docker Compose and Kubernetes:
+
+- **`wp-config.php`** is written by the builder, with the database of the project's own stack
+  (`db`/`db`/`db` on the host `db`) and nothing personal. On DDEV the builder still writes none.
+- **The address:** WordPress answers at the address it is asked on (`WP_HOME` and `WP_SITEURL` come
+  from the request), so the same site works on its port, on the node of a cluster and through a
+  tunnel. The address kept in the database is the one the build printed; WP-CLI uses it.
+- **The web server** is Apache, so the builder writes WordPress's `.htaccess` and sets the permalink
+  structure an install chooses (`/%year%/%monthnum%/%day%/%postname%/`).
+- **The suite** runs in the Workspace's tests container, against the site's address.
+- **WordPress reaches itself** at its own address on each of them, as on DDEV, so WP-Cron and the
+  Site Health checks run.
+- **Not there yet:** captured mail has no page in a browser (Mailpit is reached from the web
+  container). HTTPS and a host name are DDEV's. Podman runs the same code as Docker Compose and was
+  not run yet.
+
+The same commands work on every runtime: `cmd-tools-wordpress-cli.sh`, `cmd-tools-add-users.sh`,
+`cmd-tools-testing.sh`. How another platform plugin does the same is in
+[docs/cms-plugin-pattern.md](docs/cms-plugin-pattern.md#on-docker-compose-and-kubernetes).
 
 ### Work on a site
 

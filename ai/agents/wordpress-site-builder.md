@@ -37,9 +37,13 @@ bash cmd-wordpress-project.sh mysite --install --add-users
 | `--add-users` | With `--install`: the default accounts, one per role (`administrator`, `editor`, `author`, `contributor`, `subscriber`). |
 | `--locale <code>` | The language to download WordPress in (`en_US` by default). |
 | `--php-version <x>` | The PHP of the project container. |
+| `--runtime <name>` | The container runtime to build on: `ddev` (the default), `docker` (Docker Compose), `kubernetes` or `podman`. Without it: `container.runtime` of `core/config/settings.yml`, then DDEV. |
 | `--launch` | Opens the site when it is ready. |
 
-The site answers at `https://<name>.ddev.site`, the administration at `/wp-admin`. The builder
+On DDEV the site answers at `https://<name>.ddev.site`, the administration at `/wp-admin`. On another
+runtime the address is the one the build prints (`http://127.0.0.1:<port>` on Docker Compose, the
+node's address and a port on Kubernetes), and `bash cmd-tools-wordpress-cli.sh <name>` says it
+again: never write a `ddev.site` address for such a site. The builder
 **deletes a project of the same name first**: a build is a clean slate, so never point it at a site
 somebody still needs. The name is a folder, a container project and a host name: short, lowercase,
 letters and digits.
@@ -57,7 +61,10 @@ bash cmd-tools-wordpress-cli.sh mysite --cancel-users                   # and aw
 ```
 
 Inside the project folder, `ddev wp <command>` is the same WP-CLI, and `ddev composer`, `ddev npm`,
-`ddev export-db --file=…`, `ddev import-db --file=…` are the tools for everything else.
+`ddev export-db --file=…`, `ddev import-db --file=…` are the tools for everything else. A site on
+another runtime has no `ddev` project: there the same verbs go through the workspace,
+`bash ~/workspace/core/scripts/runtime-verb.sh wp <command>` from the project folder, and the
+plugin's and the workspace's `cmd-*.sh` work on every runtime as they are.
 
 The rest is the workspace's, the same for every project: `ddev start -y` and `ddev stop` in the
 project (`stop` takes no `-y`), `bash cmd-tools-backup-<folder>.sh <name>`,
@@ -89,9 +96,9 @@ project (`stop` takes no `-y`), `bash cmd-tools-backup-<folder>.sh <name>`,
 | --- | --- |
 | `wp core download failed` | No network in the container, or a version that does not exist: `--version latest` proves which. |
 | The installer page instead of the site | The build ran without `--install`. `bash cmd-tools-wordpress-cli.sh <name> --run "core install …"` or build again with `--install`. |
-| `Error establishing a database connection` | The project is stopped (`ddev start -y`), or `wp-config.php` was replaced: restore the include of `wp-config-ddev.php`. |
+| `Error establishing a database connection` | The project is stopped (`ddev start -y`; on another runtime the row's Start), or `wp-config.php` was replaced: on DDEV restore the include of `wp-config-ddev.php`, on another runtime the database is `db`, user `db`, password `db`, host `db`. |
 | A 404 on every page but the front page | The rewrite rules: `--run "rewrite flush --hard"`. |
-| `is not a WordPress project` from the CLI tool | The project's `.ddev/config.yaml` does not say `type: wordpress`: it was not built by this builder. |
+| `is not a WordPress project` from the CLI tool | The project's `.ddev/config.yaml` (or, on another runtime, its `compose.yaml`) does not say `type: wordpress`: it was not built by this builder. |
 | `/robots.txt` answers 404 | The container's web server answers that address itself and the site has no such file. WordPress's own robots rules are served only when a `robots.txt` file is added, or the request is passed to `index.php`. |
 
 ## What comes with you
