@@ -208,7 +208,7 @@ test('--runtime on a workspace without the runtime layer is refused, never built
 
 test('the builder takes --runtime, with the runtimes of the core\'s own builders', () => {
   const args = fs.readFileSync(path.join(PKG, 'scripts', 'args', 'arg-wordpress.sh'), 'utf8');
-  assert.match(args, /parser\.add_argument\('--runtime',\s+dest='RUNTIME',\s+default="_none_",\s+choices=\['ddev', 'docker', 'podman', 'kubernetes'\],/);
+  assert.match(args, /parser\.add_argument\('--runtime',\s+dest='RUNTIME',\s+default="_none_",\s+choices=\['ddev', 'docker', 'podman', 'kubernetes', 'lando', 'docksal'\],/);
 });
 
 test('a WordPress project is known on every runtime: the core\'s layer is asked when it is there', () => {

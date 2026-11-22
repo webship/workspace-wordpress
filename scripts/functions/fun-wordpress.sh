@@ -7,7 +7,7 @@
 # bootstrap sources it after the core's own functions. Everything runs in the project's container
 # (DDEV by default: `ddev wp …`), never on the host.
 #
-# The runtimes: a site is built on DDEV, or with --runtime on Docker Compose, Podman or Kubernetes.
+# The runtimes: a site is built on DDEV, or with --runtime on Docker Compose, Podman, Kubernetes, Lando or Docksal.
 # The commands are the same on each: `ddev <verb>` is DDEV itself on a DDEV project, and on another
 # runtime the core's layer (fun-runtime.sh) gives the verb its meaning there. What differs is in
 # three places, each behind wordpress_runtime: the address (wordpress_url), wp-config.php (DDEV
@@ -78,7 +78,7 @@ function wordpress_enter_project() {
 function wordpress_runtime_config() {
   if [ ! -f wp-config.php ] ; then
     ddev wp config create --dbname=db --dbuser=db --dbpass=db --dbhost=db --skip-check --extra-php <<'PHP' || return 1
-// The Webship Workspace's container runtime (Docker Compose, Podman, Kubernetes): the site answers
+// The Webship Workspace's container runtime (Docker Compose, Podman, Kubernetes, Lando, Docksal): the site answers
 // at the address it is asked on (a port of this machine, a node of the cluster, a tunnel). The
 // address kept in the database at the install is the one the command line uses.
 if ( ! empty( $_SERVER['HTTP_HOST'] ) ) {

@@ -37,8 +37,8 @@ export function assistantContext(): string {
   return [
     'WordPress (a plugin, @webship.co/workspace-wordpress): a WordPress site is built with',
     '`bash cmd-wordpress-project.sh <name> --install --add-users` from a sites folder (dev, test, sandboxes, demos),',
-    'in a container like every other project: on DDEV by default, at https://<name>.ddev.site, or with `--runtime docker` or',
-    '`--runtime kubernetes` on Docker Compose or a Kubernetes cluster, at the address the build prints.',
+    'in a container like every other project: on DDEV by default, at https://<name>.ddev.site, or with `--runtime docker`,',
+    '`kubernetes`, `podman`, `lando` or `docksal` on that runtime, at the address the build prints.',
     '`bash cmd-tools-wordpress-cli.sh <name>` says what the site is; `--run "<wp-cli command>"` runs WP-CLI in it,',
     '`--update` updates the core, the plugins and the themes, `--add-users` adds the default accounts (one per role).',
     '`bash cmd-tools-testing.sh <name>` sets up webship-js with the WordPress step pack; `--run` runs the suite.',
