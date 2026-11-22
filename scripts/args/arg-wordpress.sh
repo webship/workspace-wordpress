@@ -6,8 +6,8 @@ parser.add_argument('PROJECT_NAME',
 parser.add_argument('--runtime',
                     dest='RUNTIME',
                     default="_none_",
-                    choices=['ddev', 'docker', 'podman', 'kubernetes'],
-                    help='The container runtime to build on: ddev (the default, or container.runtime of settings.yml), docker (Docker Compose), podman or kubernetes.')
+                    choices=['ddev', 'docker', 'podman', 'kubernetes', 'lando', 'docksal'],
+                    help='The container runtime to build on: ddev (the default, or container.runtime of settings.yml), docker (Docker Compose), podman, kubernetes, lando or docksal.')
 parser.add_argument('-v', '--version',
                     default="${site_version}",
                     help='The WordPress release to download: latest, nightly, or a version number. Example: --version 6.8.3 [default %(default)s]')

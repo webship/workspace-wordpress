@@ -37,7 +37,7 @@ bash cmd-wordpress-project.sh mysite --install --add-users
 | `--add-users` | With `--install`: the default accounts, one per role (`administrator`, `editor`, `author`, `contributor`, `subscriber`). |
 | `--locale <code>` | The language to download WordPress in (`en_US` by default). |
 | `--php-version <x>` | The PHP of the project container. |
-| `--runtime <name>` | The container runtime to build on: `ddev` (the default), `docker` (Docker Compose), `kubernetes` or `podman`. Without it: `container.runtime` of `core/config/settings.yml`, then DDEV. |
+| `--runtime <name>` | The container runtime to build on: `ddev` (the default), `docker` (Docker Compose), `kubernetes`, `podman`, `lando` or `docksal`. Without it: `container.runtime` of `core/config/settings.yml`, then DDEV. |
 | `--launch` | Opens the site when it is ready. |
 
 On DDEV the site answers at `https://<name>.ddev.site`, the administration at `/wp-admin`. On another

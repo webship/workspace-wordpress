@@ -101,7 +101,7 @@ bash cmd-wordpress-project.sh mysite --install --add-users
 | `--add-users` | With `--install`: add the default accounts, one per role |
 | `--locale <code>` | The language WordPress is downloaded in (`en_US`) |
 | `--php-version <x>` | The PHP of the project container |
-| `--runtime <name>` | The container runtime to build on: `ddev` (the default), `docker`, `kubernetes` or `podman`. See [Runtimes](#runtimes) |
+| `--runtime <name>` | The container runtime to build on: `ddev` (the default), `docker`, `kubernetes`, `podman`, `lando` or `docksal`. See [Runtimes](#runtimes) |
 | `--launch` | Open the site when it is ready |
 
 On DDEV the site answers at `https://mysite.ddev.site`, the administration at `/wp-admin`. The build
@@ -115,23 +115,27 @@ WordPress with WP-CLI in the container, and leaves the database settings to the 
 bash cmd-wordpress-project.sh mysite --install --add-users                        # DDEV, the default
 bash cmd-wordpress-project.sh mysite --install --add-users --runtime docker       # Docker Compose
 bash cmd-wordpress-project.sh mysite --install --add-users --runtime kubernetes   # a Kubernetes cluster
+bash cmd-wordpress-project.sh mysite --install --add-users --runtime lando        # Lando
+bash cmd-wordpress-project.sh mysite --install --add-users --runtime docksal      # Docksal
 ```
 
 Without `--runtime` a build takes `container.runtime` of the workspace's `settings.yml`, then DDEV.
 It needs a Webship Workspace with the container runtimes
 ([webship/workspace#694](https://github.com/webship/workspace/issues/694)); on an older one the
-builder refuses `--runtime` and builds on DDEV only.
+builder refuses `--runtime` and builds on DDEV only. Lando and Docksal need a Workspace whose runtime
+layer has them ([webship/workspace#729](https://github.com/webship/workspace/issues/729),
+[#730](https://github.com/webship/workspace/issues/730)).
 
-| | DDEV | Docker Compose | Kubernetes | Podman |
-| --- | --- | --- | --- | --- |
-| Build and install, with the default accounts | Yes | Yes | Yes | The same code as Docker Compose, not yet run |
-| The front page and the administration | Yes | Yes | Yes | Not yet run |
-| `cmd-tools-wordpress-cli.sh`: status, `--run`, the accounts | Yes | Yes | Yes | Not yet run |
-| Test users, added and cancelled | Yes | Yes | Yes | Not yet run |
-| The testing setup and the suite (`cmd-tools-testing.sh`, `--run`) | Yes | Yes | Yes | Not yet run |
-| Mail caught by Mailpit | Yes | Yes | Yes | Not yet run |
-| Export and import the database | Yes | Yes | Yes | Not yet run |
-| The row in the dashboard, and remove | Yes | Yes | Yes | Not yet run |
+| | DDEV | Docker Compose | Kubernetes | Podman | Lando | Docksal |
+| --- | --- | --- | --- | --- | --- | --- |
+| Build and install, with the default accounts | Yes | Yes | Yes | The same code as Docker Compose, not yet run | Yes | Yes |
+| The front page and the administration | Yes | Yes | Yes | Not yet run | Yes | Yes |
+| `cmd-tools-wordpress-cli.sh`: status, `--run`, the accounts | Yes | Yes | Yes | Not yet run | Yes | Yes |
+| Test users, added and cancelled | Yes | Yes | Yes | Not yet run | Yes | Yes |
+| The testing setup and the suite (`cmd-tools-testing.sh`, `--run`) | Yes | Yes | Yes | Not yet run | Yes | Yes |
+| Mail caught by Mailpit | Yes | Yes | Yes | Not yet run | Yes | Yes |
+| Export and import the database | Yes | Yes | Yes | Not yet run | Yes | Yes |
+| The row in the dashboard, and remove | Yes | Yes | Yes | Not yet run | Yes | Yes |
 
 "Yes" means it was run on a real site of that runtime.
 
@@ -140,8 +144,10 @@ builder refuses `--runtime` and builds on DDEV only.
 | DDEV | `https://mysite.ddev.site` | `.ddev/config.yaml`; DDEV writes `wp-config.php` and `wp-config-ddev.php` |
 | Docker Compose | `http://127.0.0.1:<port>`, printed by the build | `compose.yaml`, `.webship/runtime/Dockerfile` |
 | Kubernetes | `http://<node address>:<port>`, printed by the build | The same, and `k8s/` (the namespace `ws-mysite`) |
+| Lando | `http://127.0.0.1:<port>`, printed by the build | `.lando.yml` (Lando's proxy stays off) |
+| Docksal | `http://mysite.docksal.site`, on Docksal's own proxy | `.docksal/docksal.env`, `.docksal/docksal.yml` |
 
-What differs on Docker Compose and Kubernetes:
+What differs on Docker Compose, Kubernetes, Lando and Docksal:
 
 - **`wp-config.php`** is written by the builder, with the database of the project's own stack
   (`db`/`db`/`db` on the host `db`) and nothing personal. On DDEV the builder still writes none.
