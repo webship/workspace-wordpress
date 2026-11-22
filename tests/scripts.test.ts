@@ -112,3 +112,128 @@ test('the first feature names no platform in a step, and no password', () => {
   assert.doesNotMatch(feature, /password "/);
   assert.doesNotMatch(feature, /user create|I register/i, 'a suite never creates an account');
 });
+
+// ---- The runtimes (#27): DDEV as before, and Docker Compose, Podman and Kubernetes through the core's layer ----
+
+/**
+ * Run the builder's function in a throwaway workspace with `ddev` replaced by a recorder, and the core's helpers by
+ * stand-ins. `layer` is the runtime the core's layer answers with (runtime_of, rt_url, rt_is_platform), or '' for a
+ * core that has no layer yet.
+ */
+function build(layer: string, env: Record<string, string> = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp-build-'));
+  fs.mkdirSync(path.join(root, 'dev'));
+  const log = path.join(root, 'ddev.log');
+  const address = layer === 'kubernetes' ? 'http://172.18.0.2:30080' : 'http://127.0.0.1:41234';
+  const prelude = [
+    `ddev() { echo "ddev $*" >> "${log}" ; [ "$1 $2 $3" == "wp config create" ] && cat > "${root}/extra.php" ; [ "$1 $2 $3" == "wp user get" ] && return 1 ; return 0 ; }`,
+    'trim_project_name() { :; } ; drop_database() { :; } ; ddev_nodejs_version() { echo 24 ; } ; ddev_up() { ddev "$@" ; }',
+    layer ? `runtime_of() { echo "\${RUNTIME_ANSWER}" ; } ; rt_url() { [ "\${RUNTIME_ANSWER}" == ddev ] && echo "https://\${PROJECT_NAME}.ddev.site" || echo "${address}" ; }` : '',
+    `source ${FUNCTIONS}`,
+    'wordpress_build',
+  ].join('\n');
+  const r = spawnSync('bash', ['-c', prelude], { encoding: 'utf8', env: { ...process.env, WORKSPACE_ROOT: root, doc_name: 'dev', PROJECT_NAME: 'site1',
+    INSTALL: 'yes', ADD_USERS: 'no', LAUNCH: 'no', VERSION: 'latest', LOCALE: 'en_US', RUNTIME: '_none_', RUNTIME_ANSWER: layer || 'ddev',
+    account_name: 'webmaster', account_pass: 'CHANGE_ME', account_mail: 'webmaster@example.com', ...env } });
+  const calls = fs.existsSync(log) ? fs.readFileSync(log, 'utf8').trim().split('\n') : [];
+  return { r, calls, dir: path.join(root, 'dev', 'site1'), root };
+}
+
+const DDEV_BUILD = [
+  'ddev config --project-type=wordpress --docroot= --project-name=site1 --nodejs-version=24 --auto',
+  'ddev start -y',
+  'ddev wp core download --version=latest --locale=en_US',
+  'ddev wp core install --url=https://site1.ddev.site --title=dev site1 --admin_user=webmaster --admin_password=CHANGE_ME --admin_email=webmaster@example.com --skip-email',
+  'ddev wp rewrite flush',
+  'ddev wp core version',
+];
+
+test('on DDEV the build is what it was: the same commands, the ddev.site address, no file written by the builder', () => {
+  // A core with the runtime layer, and one from before it: the same build.
+  for (const layer of ['ddev', '']) {
+    const b = build(layer);
+    assert.strictEqual(b.r.status, 0, b.r.stderr + b.r.stdout);
+    assert.deepStrictEqual(b.calls, DDEV_BUILD, layer || 'no layer');
+    assert.deepStrictEqual(fs.readdirSync(b.dir), [], 'DDEV writes wp-config.php; the builder writes nothing');
+    assert.match(b.r.stdout, /Go to https:\/\/site1\.ddev\.site\/wp-admin and log in as webmaster/);
+  }
+});
+
+test('on Docker Compose and Kubernetes the builder writes wp-config.php and .htaccess, and installs at the address of the runtime', () => {
+  for (const [runtime, address] of [['docker', 'http://127.0.0.1:41234'], ['podman', 'http://127.0.0.1:41234'], ['kubernetes', 'http://172.18.0.2:30080']]) {
+    const b = build(runtime, { RUNTIME: runtime });
+    assert.strictEqual(b.r.status, 0, b.r.stderr + b.r.stdout);
+    assert.deepStrictEqual(b.calls, [
+      DDEV_BUILD[0], DDEV_BUILD[1], DDEV_BUILD[2],
+      // The database of the project's own stack, and nothing personal.
+      'ddev wp config create --dbname=db --dbuser=db --dbpass=db --dbhost=db --skip-check --extra-php',
+      `ddev wp core install --url=${address} --title=dev site1 --admin_user=webmaster --admin_password=CHANGE_ME --admin_email=webmaster@example.com --skip-email`,
+      'ddev wp option get permalink_structure',
+      'ddev wp rewrite structure /%year%/%monthnum%/%day%/%postname%/',
+      'ddev wp rewrite flush',
+      'ddev wp core version',
+    ], runtime);
+    const extra = fs.readFileSync(path.join(b.root, 'extra.php'), 'utf8');
+    assert.match(extra, /define\( 'WP_HOME', 'http:\/\/' \. \$_SERVER\['HTTP_HOST'\] \);/, 'the site answers at the address it is asked on');
+    assert.doesNotMatch(extra, /ddev|127\.0\.0\.1|localhost/, 'no address is written into wp-config.php');
+    const htaccess = fs.readFileSync(path.join(b.dir, '.htaccess'), 'utf8');
+    assert.match(htaccess, /^# BEGIN WordPress\n<IfModule mod_rewrite\.c>\nRewriteEngine On\n/);
+    assert.match(htaccess, /^RewriteRule \^index\\\.php\$ - \[L\]$/m);
+    assert.match(htaccess, /^RewriteRule \. \/index\.php \[L\]\n<\/IfModule>\n# END WordPress\n$/m);
+    assert.match(b.r.stdout, new RegExp(`Go to ${address.replace(/[.]/g, '\\.')}/wp-admin and log in as webmaster`));
+    assert.doesNotMatch(b.r.stdout, /ddev\.site/);
+  }
+});
+
+test('a wp-config.php or an .htaccess that is already there is left as it is', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp-config-'));
+  fs.writeFileSync(path.join(root, 'wp-config.php'), '<?php // mine\n');
+  fs.writeFileSync(path.join(root, '.htaccess'), '# mine\n');
+  const log = path.join(root, 'ddev.log');
+  const r = bash(`cd ${root} && wordpress_runtime_config`, { DDEV_LOG: log });
+  assert.strictEqual(r.status, 0, r.stderr);
+  assert.ok(!fs.existsSync(log), 'WP-CLI is not asked');
+  assert.strictEqual(fs.readFileSync(path.join(root, 'wp-config.php'), 'utf8'), '<?php // mine\n');
+  assert.strictEqual(fs.readFileSync(path.join(root, '.htaccess'), 'utf8'), '# mine\n');
+});
+
+test('--runtime on a workspace without the runtime layer is refused, never built on DDEV in silence', () => {
+  const b = build('', { RUNTIME: 'docker' });
+  assert.strictEqual(b.r.status, 1);
+  assert.match(b.r.stdout, /--runtime docker needs a Webship Workspace with the container runtimes/);
+  assert.deepStrictEqual(b.calls, [], 'nothing was configured or started');
+  // Asking for DDEV by name is fine there.
+  assert.strictEqual(build('', { RUNTIME: 'ddev' }).r.status, 0);
+});
+
+test('the builder takes --runtime, with the runtimes of the core\'s own builders', () => {
+  const args = fs.readFileSync(path.join(PKG, 'scripts', 'args', 'arg-wordpress.sh'), 'utf8');
+  assert.match(args, /parser\.add_argument\('--runtime',\s+dest='RUNTIME',\s+default="_none_",\s+choices=\['ddev', 'docker', 'podman', 'kubernetes'\],/);
+});
+
+test('a WordPress project is known on every runtime: the core\'s layer is asked when it is there', () => {
+  // With the layer: its answer, for the folder and the plugin's name.
+  const asked = bash('rt_is_platform() { echo "asked $1 $2" ; [ "$1" == /a/wp ] ; } ; wordpress_is_project /a/wp ; echo "rc=$?" ; wordpress_is_project /a/other ; echo "rc=$?"');
+  assert.strictEqual(asked.stdout, 'asked /a/wp wordpress\nrc=0\nasked /a/other wordpress\nrc=1\n');
+  // Without it: the DDEV project type, as before.
+  const p = project('wordpress');
+  assert.strictEqual(bash(`wordpress_is_project ${p.dir}`).status, 0);
+  assert.strictEqual(bash(`wordpress_is_project ${project('php').dir}`).status, 1);
+});
+
+test('the tool and the test users work on a site of a runtime: no .ddev folder is asked for', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp-rt-'));
+  const dir = path.join(root, 'dev', 'site1');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'compose.yaml'), 'name: site1\nx-webship:\n  runtime: docker\n  type: wordpress\n  port: 41234\n');
+  const log = path.join(root, 'ddev.log');
+  const layer = 'rt_is_platform() { grep -q "^  type: $2$" "$1/compose.yaml" ; } ; trim_project_name() { :; } ; ';
+  const env = { WORKSPACE_ROOT: root, doc_name: 'dev', PROJECT_NAME: 'site1', DDEV_LOG: log };
+  const add = bash(`${layer} set_wordpress_users ; add_wordpress_users`, env);
+  assert.strictEqual(add.status, 0, add.stdout + add.stderr);
+  assert.match(fs.readFileSync(log, 'utf8'), /ddev wp user create subscriber subscriber@example\.com --role=subscriber/);
+  fs.unlinkSync(log);
+  const run = bash(`${layer} RUN="plugin list" ; UPDATE=no ; wordpress_cli_tool`, env);
+  assert.strictEqual(run.status, 0, run.stdout + run.stderr);
+  assert.match(fs.readFileSync(log, 'utf8'), /ddev wp plugin list/);
+});

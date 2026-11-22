@@ -44,13 +44,19 @@ test('every shell script parses', () => {
   }
 });
 
-test('the functions carry the names the core\'s tools look for, and never write database settings', () => {
+test('the functions carry the names the core\'s tools look for, and write database settings only where the container tool writes none', () => {
   const src = read('scripts/functions/fun-wordpress.sh');
   for (const fn of ['set_wordpress_users', 'add_wordpress_users', 'cancel_wordpress_users', 'testing_configure_wordpress', 'wordpress_build', 'wordpress_cli_tool']) {
     assert.match(src, new RegExp(`^function ${fn}\\(\\) \\{`, 'm'), `${fn} is defined`);
   }
   assert.doesNotMatch(src, /^function build_wordpress\(\)/m, 'the core\'s own example function is not redefined');
-  assert.doesNotMatch(src, /wp config create|define\(\s*'DB_/, 'the container tool owns the database settings');
+  // On DDEV the container tool owns the database settings. On another runtime nothing writes them, so one function
+  // does, with the values of the project's own stack, and the build calls it only there.
+  assert.doesNotMatch(src, /define\(\s*'DB_/);
+  assert.deepStrictEqual(src.match(/^.*wp config create.*$/gm), ["    ddev wp config create --dbname=db --dbuser=db --dbpass=db --dbhost=db --skip-check --extra-php <<'PHP' || return 1"]);
+  assert.match(src, /if \[ "\$\{runtime\}" != 'ddev' \] ; then\n    wordpress_runtime_config \|\| /, 'never on DDEV');
+  assert.deepStrictEqual(src.match(/^\s*wordpress_runtime_config\b.*$/gm)?.length, 1, 'called from one place');
+  assert.doesNotMatch(src.replace(/^\s*#.*$/gm, '').replace(/echo "https:\/\/\$\{PROJECT_NAME\}\.ddev\.site"/, ''), /ddev\.site/, 'the address is the runtime\'s to say: ddev.site only as the answer of a core with no layer');
   assert.match(src, /--project-type=wordpress/);
   assert.match(src, /--nodejs-version=\$\(ddev_nodejs_version\)/, 'the build runs the Node.js of the workspace rule');
   assert.doesNotMatch(src, /ddev stop -y/, 'ddev stop takes no -y');

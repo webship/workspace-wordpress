@@ -84,8 +84,10 @@
       ]
     },
     "features": [
-      "features/wordpress.feature"
-    ]
+      "features/wordpress.feature",
+      "features/wordpress-runtimes.feature"
+    ],
+    "featuresSite": "cmd-wordpress-project.sh ci-wordpress --install --add-users --runtime docker"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
